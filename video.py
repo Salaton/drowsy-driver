@@ -7,6 +7,30 @@ You can select the second camera by passing 1 and so on. After that, you can cap
 But at the end, don’t forget to release the capture.
 '''
 from cv2 import cv2
+from pymongo import MongoClient
+from pprint import pprint
+# connect to MongoDB, change the << MONGODB URL >> to reflect your own connection string, using pymongo!
+client = MongoClient(port=27017)
+# Creating the new db
+db = client.drowsy_test
+
+
+def driverprofile():
+    driverprofile.names = input('Enter your name : ')
+    driverprofile.regNo = input('Enter your reg no : ')
+    driverprofile.email = input('Enter your email address : ')
+    driverprofile.phoneNumber = input('Enter your phone number: ')
+    driverprofile.nextOfKin = input('Enter your next of kin number: ')
+
+    details = {
+        'name': driverprofile.names,
+        'regNo': driverprofile.regNo,
+        'email': driverprofile.email,
+        'phoneNumber': driverprofile.phoneNumber,
+        'nextOfKin': driverprofile.nextOfKin
+    }
+    result = db.driverdetails.insert(details)
+    print(f'finished inserting {result} details into the db')
 
 
 # load XML classifier
@@ -22,8 +46,15 @@ if loaded == True:
 
 
 capture = cv2.VideoCapture(0)
+# names = input('Enter your name : ')
+# regNo = input('Enter your reg no : ')
+# email = input('Enter your email address : ')
+# phoneNumber = input('Enter your phone number: ')
+# nextOfKin = input('Enter your next of kin number: ')
+driverprofile()
 
 while True:
+
     # capture frame by frame (returns true or false)
     ret, frame = capture.read()
 
@@ -42,6 +73,22 @@ while True:
         # iterate over all eyes found on face
         for (ex, ey, ew, eh) in eyes:
             cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (0, 255, 0), 2)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        # bottomLeftCornerOfText = (x, y+h+30)
+        fontScale = 1
+        fontColor = (255, 255, 255)
+        lineType = 2
+
+        cv2.putText(img, driverprofile.names, (x, y+h+30),
+                    font, fontScale, fontColor, lineType)
+        cv2.putText(img, driverprofile.regNo, (x, y+h+60),
+                    font, fontScale, fontColor, lineType)
+        cv2.putText(img, driverprofile.email, (x, y+h+90),
+                    font, fontScale, fontColor, lineType)
+        cv2.putText(img, driverprofile.phoneNumber, (x, y+h+120),
+                    font, fontScale, fontColor, lineType)
+        cv2.putText(img, driverprofile.nextOfKin, (x, y+h+150),
+                    font, fontScale, fontColor, lineType)
 
     # display resulting frame
     cv2.imshow('gray', gray)
