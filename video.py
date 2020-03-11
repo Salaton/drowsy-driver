@@ -4,6 +4,7 @@ from pprint import pprint
 import dlib
 import numpy as np
 from imutils import face_utils
+from scipy.spatial import distance
 
 
 # connect to MongoDB, change the << MONGODB URL >> to reflect your own connection string, using pymongo!
@@ -30,6 +31,37 @@ def driverprofile():
     result = db.driverdetails.insert(details)
     print(f'finished inserting {result} details into the db')
 
+# Computing the EYE ASPECT RATIO to determine blinking..
+
+
+def eyeAspectRatio(eye):
+    # Computing the vertical parts
+    p1 = distance.euclidean(eye[1], eye[5])
+    p2 = distance.euclidean(eye[2], eye[4])
+    # Computing the horizontal parts
+    p3 = distance.euclidean(eye[0], eye[3])
+    # Eye aspect ratio
+    ear = (p1 + p2)/(2.0*p3)
+
+    return ear
+
+
+'''
+# EAR to show a blink. If EAR falls below the threshold and then rises, that's a blink
+ '''
+EYE_AR_THRESH = 0.2
+# no of consecutive frames that the eye must be below the threshold
+EYE_AR_CONSEC_FRAMES = 3
+
+
+COUNTER = 0
+TOTAL = 0
+
+'''Getting the coordinates of the left and right eye'''
+(left_eye_start,
+ left_eye_end) = face_utils.FACIAL_LANDMARKS_68_IDXS['left_eye']
+(right_eye_start,
+ right_eye_end) = face_utils.FACIAL_LANDMARKS_68_IDXS['right_eye']
 
 # load XML classifier
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -44,6 +76,7 @@ if loaded == True:
 
 
 # Start the video stream
+# capture = cv2.VideoCapture('https://192.168.100.7:8080/video')
 capture = cv2.VideoCapture(0)
 
 
@@ -91,6 +124,7 @@ def plot_numberOnEyes(vid, landmarks):
 # driverprofile()
 
 
+# Start looping over the frames
 while True:
 
     # capture frame by frame (returns true or false)
@@ -114,15 +148,26 @@ while True:
         faces_dlib = dlib.rectangle(x1, y1, x2, y2)
         # print(faces_dlib)
         landmarks = eye_predictor(gray, faces_dlib)
+        # convert thr coordinates to Numpy Array
+        landmark = face_utils.shape_to_np(landmarks)
+        print(landmark)
         # landmarks = face_utils.shape_to_np(landmarks)
-
-        # for (lX, lY) in landmarks:
-        #     cv2.circle(frame, (lX, lY), 1, (0, 0, 255), -1)
-
+        '''Applying landmarks to the face..'''
         for n in range(0, 68):
             x = landmarks.part(n).x
             y = landmarks.part(n).y
             cv2.circle(gray, (x, y), 4, (36, 36, 246), -1)
+
+        leftEye = landmark[left_eye_start:left_eye_end]
+        rightEye = landmark[right_eye_start:right_eye_end]
+
+        left_eye_aspect_ratio = eyeAspectRatio(leftEye)
+        right_eye_aspect_ratio = eyeAspectRatio(rightEye)
+
+        # EAR for combined eyes
+        eyeaspect_ratio = (left_eye_aspect_ratio +
+                           right_eye_aspect_ratio) / 2.0
+        print(eyeaspect_ratio)
 
         # ROI for the face so that eyes can be detected
         roi_gray = gray[y1:y2, x1:x2]
