@@ -148,7 +148,7 @@ while True:
         faces_dlib = dlib.rectangle(x1, y1, x2, y2)
         # print(faces_dlib)
         landmarks = eye_predictor(gray, faces_dlib)
-        # convert thr coordinates to Numpy Array
+        # convert the face coordinates to Numpy Array
         landmark = face_utils.shape_to_np(landmarks)
         print(landmark)
         # landmarks = face_utils.shape_to_np(landmarks)
@@ -167,7 +167,10 @@ while True:
         # EAR for combined eyes
         eyeaspect_ratio = (left_eye_aspect_ratio +
                            right_eye_aspect_ratio) / 2.0
-        print(eyeaspect_ratio)
+
+        # Output EAR  to the screen
+        cv2.putText(img, 'EAR: {:.3f}'.format(eyeaspect_ratio),
+                    (300, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         # ROI for the face so that eyes can be detected
         roi_gray = gray[y1:y2, x1:x2]
