@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from pprint import pprint
 import dlib
 import numpy as np
+import pyglet
 from imutils import face_utils
 from scipy.spatial import distance
 
@@ -30,7 +31,14 @@ def driverprofile():
     }
     result = db.driverdetails.insert(details)
     print(f'finished inserting {result} details into the db')
+# Function that raises alarm
 
+
+def raise_alarm():
+    alarm = pyglet.resource.media('watch.wav')
+    alarm.play()
+
+    pyglet.app.run()
 # Computing the EYE ASPECT RATIO to determine blinking..
 
 
@@ -49,12 +57,12 @@ def eyeAspectRatio(eye):
 '''
 # EAR to show a blink. If EAR falls below the threshold and then rises, that's a blink
  '''
-EYE_AR_THRESH = 0.2
+EYE_EAR_THRESH = 0.2
 # no of consecutive frames that the eye must be below the threshold
 EYE_AR_CONSEC_FRAMES = 3
 
 
-COUNTER = 0
+WARNING_COUNTER = 0
 TOTAL = 0
 
 '''Getting the coordinates of the left and right eye'''
@@ -152,6 +160,7 @@ while True:
         landmark = face_utils.shape_to_np(landmarks)
         print(landmark)
         # landmarks = face_utils.shape_to_np(landmarks)
+
         '''Applying landmarks to the face..'''
         for n in range(0, 68):
             x = landmarks.part(n).x
@@ -167,11 +176,21 @@ while True:
         # EAR for combined eyes
         eyeaspect_ratio = (left_eye_aspect_ratio +
                            right_eye_aspect_ratio) / 2.0
-
+        print(eyeaspect_ratio)
         # Output EAR  to the screen
         cv2.putText(img, 'EAR: {:.3f}'.format(eyeaspect_ratio),
-                    (300, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    (300, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        '''Raising the alarm logic!'''
+        if (eyeaspect_ratio < EYE_EAR_THRESH):
+            WARNING_COUNTER += 1
 
+            if (WARNING_COUNTER > EYE_EAR_THRESH):
+                raise_alarm()
+
+                # cv2.putText(img, 'Drowsiness Detected!!!!', (5, 30),
+                #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            else:
+                WARNING_COUNTER = 0
         # ROI for the face so that eyes can be detected
         roi_gray = gray[y1:y2, x1:x2]
         roi_color = gray[y1:y2, x1:x2]
