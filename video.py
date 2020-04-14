@@ -1,4 +1,5 @@
 import cv2
+import os
 from pymongo import MongoClient
 from pprint import pprint
 import dlib
@@ -6,7 +7,7 @@ import numpy as np
 import pyglet
 from imutils import face_utils
 from scipy.spatial import distance
-
+import datetime
 
 # connect to MongoDB, change the << MONGODB URL >> to reflect your own connection string, using pymongo!
 client = MongoClient(port=27017)
@@ -42,16 +43,31 @@ def raise_alarm():
 # Computing the EYE ASPECT RATIO to determine blinking..
 
 
-def eyeAspectRatio(eye):
+def eyeAspectRatio(eyelandmark):
     # Computing the vertical parts
-    p1 = distance.euclidean(eye[1], eye[5])
-    p2 = distance.euclidean(eye[2], eye[4])
+    p1 = distance.euclidean(eyelandmark[1], eyelandmark[5])
+    p2 = distance.euclidean(eyelandmark[2], eyelandmark[4])
     # Computing the horizontal parts
-    p3 = distance.euclidean(eye[0], eye[3])
+    p3 = distance.euclidean(eyelandmark[0], eyelandmark[3])
     # Eye aspect ratio
     ear = (p1 + p2)/(2.0*p3)
 
     return ear
+
+
+'''
+Get the current time that the alarm was raised to indicate drowsiness,
+might be useful to provide insights..
+'''
+
+
+def getTimeAlarmWasRaised(ear):
+    getTime = datetime.datetime.now()
+    currentTime = currentTime.strftime("%H:%M:%S")
+    print(
+        f'The alarm was raised at: {currentTime},with an eye threshold of: {ear}')
+
+    # Later on, the time will be written to a file (idea is to create a dataset) for analysis and predictions..
 
 
 '''
@@ -78,7 +94,7 @@ face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye_tree_eyeglasses.xml')
 # check if classifier is loaded for error handling..
 loaded = cv2.CascadeClassifier.empty(face_cascade)
-print(loaded)
+print(f'{loaded}: The classifier is loaded correctly, ready to identify the face')
 if loaded == True:
     print('You need to load the classifier')
 
@@ -185,12 +201,17 @@ while True:
             WARNING_COUNTER += 1
 
             if (WARNING_COUNTER > EYE_EAR_THRESH):
-                raise_alarm()
+                # We get the time the alarm was raised...
+                getTimeAlarmWasRaised(eyeaspect_ratio)
+                os.system(
+                    'spd-say "Drowsiness levels detected! You might need to take a break"')
+
+                # raise_alarm()
 
                 # cv2.putText(img, 'Drowsiness Detected!!!!', (5, 30),
                 #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             else:
-                WARNING_COUNTER = 0
+                break
         # ROI for the face so that eyes can be detected
         roi_gray = gray[y1:y2, x1:x2]
         roi_color = gray[y1:y2, x1:x2]
