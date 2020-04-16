@@ -8,6 +8,7 @@ import pyglet
 from imutils import face_utils
 from scipy.spatial import distance
 import datetime
+import threading
 
 # connect to MongoDB, change the << MONGODB URL >> to reflect your own connection string, using pymongo!
 client = MongoClient(port=27017)
@@ -40,6 +41,7 @@ def raise_alarm():
     alarm.play()
 
     pyglet.app.run()
+
 # Computing the EYE ASPECT RATIO to determine blinking..
 
 
@@ -63,7 +65,7 @@ might be useful to provide insights..
 
 def getTimeAlarmWasRaised(ear):
     getTime = datetime.datetime.now()
-    currentTime = currentTime.strftime("%H:%M:%S")
+    currentTime = getTime.strftime("%H:%M:%S")
     print(
         f'The alarm was raised at: {currentTime},with an eye threshold of: {ear}')
 
@@ -79,6 +81,7 @@ EYE_AR_CONSEC_FRAMES = 3
 
 
 WARNING_COUNTER = 0
+RAISED_ALARM = False
 TOTAL = 0
 
 '''Getting the coordinates of the left and right eye'''
@@ -201,17 +204,25 @@ while True:
             WARNING_COUNTER += 1
 
             if (WARNING_COUNTER > EYE_EAR_THRESH):
-                # We get the time the alarm was raised...
-                getTimeAlarmWasRaised(eyeaspect_ratio)
-                os.system(
-                    'spd-say "Drowsiness levels detected! You might need to take a break"')
+                if not RAISED_ALARM:
+                    RAISED_ALARM = True
 
-                # raise_alarm()
+                    # We get the time the alarm was raised...
+                    getTimeAlarmWasRaised(eyeaspect_ratio)
+                    # os.system(
+                    #     'spd-say "Drowsiness levels detected! You might need to take a break"')
 
-                # cv2.putText(img, 'Drowsiness Detected!!!!', (5, 30),
-                #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            else:
-                break
+                    # raise_alarm()
+                    # Having the alarm function running as a thread
+                    alarmThread = threading.Thread(target=raise_alarm)
+                    alarmThread.daemon = True
+                    alarmThread.start()
+
+                    cv2.putText(img, 'Drowsiness Detected!!!!', (5, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        else:
+            WARNING_COUNTER = 0
+            RAISED_ALARM = False
         # ROI for the face so that eyes can be detected
         roi_gray = gray[y1:y2, x1:x2]
         roi_color = gray[y1:y2, x1:x2]
